@@ -287,6 +287,11 @@ function Terminal({ openApp, theme, setTheme }: { openApp: (id: AppId) => void; 
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const projectLines: TerminalLine[] = [
+    { text: `${projects.length} projects and tools:`, kind: 'terminal-hint' },
+    ...projects.map(project => ({ text: `• ${project.name} — ${project.category}${project.dates ? ` · ${project.dates}` : ''}`, kind: 'terminal-muted' })),
+    { text: 'Open Projects Explorer', link: 'projects' },
+  ];
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' });
   }, [lines]);
@@ -302,7 +307,7 @@ function Terminal({ openApp, theme, setTheme }: { openApp: (id: AppId) => void; 
       help: [{ text: 'Available: help · whoami · about · projects · skills · experience · education · contact · resume · date · theme · settings · clear', kind: 'terminal-muted' }, { text: 'Try: open projects | open skills | open experience | open contact' }],
       whoami: [{ text: `${profile.name} — ${profile.title}`, kind: 'terminal-name' }, { text: `${profile.currentRole} at ${profile.employer} · ${profile.location}` }],
       about: [{ text: profile.summary, kind: 'terminal-muted' }, { text: 'Opening About Me…', link: 'about' }],
-      projects: [{ text: `${projects.length} projects and tools are in the Explorer.`, link: 'projects' }],
+      projects: projectLines,
       skills: [{ text: `${Object.values(skillGroups).flat().length} listed technologies across ${Object.keys(skillGroups).length} categories.`, link: 'skills' }],
       experience: [{ text: 'View the professional timeline.', link: 'experience' }],
       education: [{ text: education.map(item => `${item.degree} — ${item.institution}`).join(' · '), link: 'education' }],
@@ -315,9 +320,12 @@ function Terminal({ openApp, theme, setTheme }: { openApp: (id: AppId) => void; 
     if (normalized === 'theme') setTheme(theme === 'dark' ? 'light' : 'dark');
     if (normalized.startsWith('open ')) {
       const appName = normalized.slice(5);
-      const match = (Object.keys(appInfo) as AppId[]).find(id => id === appName || appInfo[id].title.toLowerCase() === appName);
-      if (match) output.push({ text: `Opening ${appInfo[match].title}…`, link: match });
-      else output.push({ text: `No app named "${appName}". Type "help" for supported commands.`, kind: 'terminal-error' });
+      if (['project', 'projects', 'project explorer', 'projects explorer'].includes(appName)) output.push(...projectLines);
+      else {
+        const match = (Object.keys(appInfo) as AppId[]).find(id => id === appName || appInfo[id].title.toLowerCase() === appName);
+        if (match) output.push({ text: `Opening ${appInfo[match].title}…`, link: match });
+        else output.push({ text: `No app named "${appName}". Type "help" for supported commands.`, kind: 'terminal-error' });
+      }
     } else if (commandMap[normalized]) output.push(...commandMap[normalized]);
     else output.push({ text: `Command not recognized: ${command}. Type "help" to see what I can do.`, kind: 'terminal-error' });
     setLines(previous => [...previous, ...output]);
@@ -332,11 +340,18 @@ function About({ openApp }: { openApp: (id: AppId) => void }) {
     {tab === 'Personal info' && <div className="info-list">{[['Location', profile.location], ['Email', profile.email], ['Phone', profile.phone], ['Current role', profile.currentRole], ['Employer', profile.employer]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>}
     {tab === 'What I build' && <div className="content-section"><h3>Curiosity, from idea to dependable product.</h3><div className="interest-grid">{[['✦', 'AI & LLM applications', 'Agentic workflows, retrieval, and practical Generative AI.'], ['⌘', 'Full-stack products', 'Thoughtful interfaces backed by reliable services and APIs.'], ['▤', 'Automation', 'Tools that make complex workflows easier to understand and operate.']].map(card => <div className="interest-card" key={card[1]}><span>{card[0]}</span><strong>{card[1]}</strong><p>{card[2]}</p></div>)}</div></div>}
     {tab === 'Education' && <EducationList />}
-    <div className="action-row"><button className="primary-button" onClick={() => openApp('resume')}>▧ View Resume</button>{profile.github && <a className="secondary-button" href={profile.github} target="_blank" rel="noreferrer">GitHub ↗</a>}{profile.linkedin && <a className="secondary-button" href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>}<a className="secondary-button" href={`mailto:${profile.email}`}>✉ Email Me</a></div>
+    <div className="action-row"><button className="primary-button" onClick={() => openApp('resume')}>▧ View Resume</button>{profile.github && <a className="secondary-button" href={profile.github} target="_blank" rel="noreferrer">GitHub ↗</a>}{profile.linkedin && <a className="secondary-button" href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>}<a className="secondary-button" href={gmailComposeUrl(profile.email)} target="_blank" rel="noreferrer">✉ Email Me</a></div>
   </div>;
 }
 
 function EducationList() { return <div className="education-list">{education.map(item => <div className="education-card" key={item.degree}><span className="education-icon">▱</span><div><h3>{item.degree}</h3><p>{item.institution}</p><strong>{item.result}</strong></div></div>)}<p className="muted small-note">No certifications were listed in the supplied project information.</p></div>; }
+
+function gmailComposeUrl(to: string, subject = '', body = '') {
+  const params = new URLSearchParams({ view: 'cm', fs: '1', to });
+  if (subject) params.set('su', subject);
+  if (body) params.set('body', body);
+  return `https://mail.google.com/mail/?${params.toString()}`;
+}
 
 function ProjectsApp({ projectFilter, clearProjectFilter }: { projectFilter: string; clearProjectFilter: () => void }) {
   const [category, setCategory] = useState('All Projects');
@@ -402,10 +417,10 @@ function ContactApp() {
     if (!fields.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email) || !fields.message.trim()) { setError('Add your name, a valid email, and a message to continue.'); return; }
     const subject = fields.subject.trim() || `Portfolio message from ${fields.name.trim()}`;
     const body = `Name: ${fields.name.trim()}\nEmail: ${fields.email.trim()}\n\n${fields.message.trim()}`;
-    window.location.href = `mailto:${profile.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailComposeUrl(profile.email, subject, body), '_blank', 'noopener,noreferrer');
     setError('');
   };
-  return <div className="contact-app app-padding"><div className="contact-intro"><div className="eyebrow">LET'S CONNECT</div><h2>Have something in mind?</h2><p>Send a note, or reach out through the details below.</p></div><div className="contact-grid"><div className="contact-details">{[['✉', 'Email', profile.email, `mailto:${profile.email}`], ['☎', 'Phone', profile.phone, `tel:${profile.phone.replace(/ /g, '')}`], ['⌖', 'Location', profile.location, '']].map(([icon, label, value, href]) => <div className="contact-detail" key={label}><span>{icon}</span><div><small>{label}</small>{href ? <a href={href}>{value}</a> : <strong>{value}</strong>}</div></div>)}{profile.github && <a href={profile.github} target="_blank" rel="noreferrer">GitHub ↗</a>}{profile.linkedin && <a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>}<p className="muted small-note">GitHub and LinkedIn links are hidden until configured.</p></div><form className="contact-form" onSubmit={submit}><label>Your name<input required value={fields.name} onChange={event => setFields({ ...fields, name: event.target.value })} /></label><label>Your email<input type="email" required value={fields.email} onChange={event => setFields({ ...fields, email: event.target.value })} /></label><label>Subject <span className="muted">(optional)</span><input value={fields.subject} onChange={event => setFields({ ...fields, subject: event.target.value })} /></label><label>Message<textarea required rows={3} value={fields.message} onChange={event => setFields({ ...fields, message: event.target.value })} /></label>{error && <p className="form-error">{error}</p>}<button className="primary-button" type="submit">Continue in email app ↗</button><p className="muted small-note">This form opens your email app; no message is sent or stored by this site.</p></form></div></div>;
+  return <div className="contact-app app-padding"><div className="contact-intro"><div className="eyebrow">LET'S CONNECT</div><h2>Have something in mind?</h2><p>Send a note, or reach out through the details below.</p></div><div className="contact-grid"><div className="contact-details">{[['✉', 'Email', profile.email, gmailComposeUrl(profile.email)], ['☎', 'Phone', profile.phone, `tel:${profile.phone.replace(/ /g, '')}`], ['⌖', 'Location', profile.location, '']].map(([icon, label, value, href]) => <div className="contact-detail" key={label}><span>{icon}</span><div><small>{label}</small>{href ? <a href={href} target={label === 'Email' ? '_blank' : undefined} rel={label === 'Email' ? 'noreferrer' : undefined}>{value}</a> : <strong>{value}</strong>}</div></div>)}{profile.github && <a href={profile.github} target="_blank" rel="noreferrer">GitHub ↗</a>}{profile.linkedin && <a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn ↗</a>}<p className="muted small-note">GitHub and LinkedIn links are hidden until configured.</p></div><form className="contact-form" onSubmit={submit}><label>Your name<input required value={fields.name} onChange={event => setFields({ ...fields, name: event.target.value })} /></label><label>Your email<input type="email" required value={fields.email} onChange={event => setFields({ ...fields, email: event.target.value })} /></label><label>Subject <span className="muted">(optional)</span><input value={fields.subject} onChange={event => setFields({ ...fields, subject: event.target.value })} /></label><label>Message<textarea required rows={3} value={fields.message} onChange={event => setFields({ ...fields, message: event.target.value })} /></label>{error && <p className="form-error">{error}</p>}<button className="primary-button" type="submit">Continue in Gmail ↗</button><p className="muted small-note">This form opens a Gmail draft addressed to {profile.email}; no message is sent or stored by this site.</p></form></div></div>;
 }
 
 const wallpapers: [string, string][] = [['kolkata', 'Kolkata dusk'], ['puja', 'Puja glow'], ['aurora', 'Aurora'], ['ocean', 'Ocean'], ['forest', 'Forest'], ['midnight', 'Midnight'], ['solid', 'Solid colour'], ['image', 'Your image']];
