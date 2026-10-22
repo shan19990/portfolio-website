@@ -119,6 +119,18 @@ const WAVE_BOTTOM_GAP = 30;
 const BOARD_H = 941;
 const WRAP_W = 2100;
 
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const list = window.matchMedia(query);
+    const update = () => setMatches(list.matches);
+    update();
+    list.addEventListener('change', update);
+    return () => list.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
 export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
   const stage = useRef<HTMLDivElement>(null);
   const avatar = useRef<HTMLImageElement>(null);
@@ -127,7 +139,9 @@ export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
   const [missFrame, setMissFrame] = useState<number | null>(null);
   const [open, setOpen] = useState<Story | null>(null);
   const [scrollFrame, setScrollFrame] = useState(0);
-
+  const compact = useMediaQuery('(max-width: 700px)');
+  const rotated = useMediaQuery('(max-width: 700px) and (orientation: portrait)');
+  const [pointer, setPointer] = useState({ x: 0.78, y: 0.9 });
   useEffect(() => {
     Object.values(SPRITES).forEach(name => { const image = new Image(); image.src = spriteUrl(name); });
     MISS_FRAMES.forEach(src => { const image = new Image(); image.src = src; });
@@ -139,16 +153,39 @@ export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
   const track = (clientX: number, clientY: number) => {
     if (missTimer.current) return;
     const box = avatar.current?.getBoundingClientRect();
-    const area = stage.current?.getBoundingClientRect();
+    const area = stage.current;
     if (!box || !area) return;
-    setLook(pickLook(clientX - (box.left + box.width / 2), clientY - (box.top + box.height * 0.3), area.width / 2));
+    let dx = clientX - (box.left + box.width / 2);
+    let dy = clientY - (box.top + box.height * 0.3);
+    if (rotated) [dx, dy] = [dy, -dx];
+    setLook(pickLook(dx, dy, area.offsetWidth / 2));
   };
 
   useEffect(() => {
+    if (compact) return;
     const onMove = (event: PointerEvent) => track(event.clientX, event.clientY);
     window.addEventListener('pointermove', onMove);
     return () => window.removeEventListener('pointermove', onMove);
-  }, []);
+  }, [compact, rotated]);
+
+  const tapStart = useRef<{ x: number; y: number } | null>(null);
+
+  const tapRing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const hit = document.elementsFromPoint(box.left + box.width / 2, box.top + box.height / 2).find(el => (el as HTMLElement).dataset?.story) as HTMLElement | undefined;
+    const story = hit && STORIES.find(item => item.id === hit.dataset.story);
+    if (story) setOpen(story); else playMiss();
+  };
+
+  const dragPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const area = stage.current;
+    if (!area || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const rect = area.getBoundingClientRect();
+    const x = rotated ? event.clientY - rect.top : event.clientX - rect.left;
+    const y = rotated ? rect.right - event.clientX : event.clientY - rect.top;
+    setPointer({ x: Math.min(1, Math.max(0, x / area.offsetWidth)), y: Math.min(1, Math.max(0, y / area.offsetHeight)) });
+    track(event.clientX, event.clientY);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -194,7 +231,7 @@ export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
 
   const avatarSrc = missFrame !== null ? MISS_FRAMES[missFrame] : spriteUrl(SPRITES[look]);
 
-  return <div className="journey" ref={stage} onPointerDown={onStagePointerDown}>
+  return <div className={`journey ${rotated ? 'journey-rotated' : ''}`} ref={stage} onPointerDown={onStagePointerDown}>
     <img className="journey-bg" src="/sprite/landscape.png" alt="Pixel-art view of the Kolkata riverfront park" draggable={false} />
     {STORIES.map(story => <button key={story.id} data-story={story.id} className="journey-story" style={{ left: `${story.x}%`, top: `${story.y}%`, '--float-delay': `${story.delay}s` } as CSSProperties} aria-label={`${story.title} story`} title={story.title}>
       <img src={`/sprite/stories/${story.image}.png`} alt="" draggable={false} />
@@ -202,7 +239,17 @@ export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
     <div className="journey-avatar-wrap">
       <img ref={avatar} className="journey-avatar" src={avatarSrc} alt={missFrame !== null ? 'Avatar crossing arms: nothing to open there' : 'Pixel avatar of Shankhanil following your cursor'} draggable={false} />
     </div>
-    <div className="journey-hint">{missFrame !== null ? 'Nothing there — try one of the islands.' : 'Click an island to open its story.'}</div>
+    <div className="journey-hint">{missFrame !== null ? 'Nothing there — try one of the islands.' : compact ? 'Drag the ring over an island, then tap the ring to open it.' : 'Click an island to open its story.'}</div>
+    {compact && !open && <div className="journey-pointer" role="slider" aria-label="Pointer ring: drag to aim the avatar" aria-valuetext={`${Math.round(pointer.x * 100)}% across, ${Math.round(pointer.y * 100)}% down`} tabIndex={0}
+      style={{ left: `${pointer.x * 100}%`, top: `${pointer.y * 100}%` }}
+      onPointerDown={event => { event.stopPropagation(); tapStart.current = { x: event.clientX, y: event.clientY }; event.currentTarget.setPointerCapture(event.pointerId); dragPointer(event); }}
+      onPointerMove={dragPointer}
+      onPointerUp={event => {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        const start = tapStart.current; tapStart.current = null;
+        if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 8) tapRing(event);
+      }}
+      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); tapRing(event as unknown as ReactPointerEvent<HTMLDivElement>); } }} />}
     {open && <div className="journey-backdrop" onClick={event => { if (event.target === event.currentTarget) setOpen(null); }}>
       <div className="journey-board" role="dialog" aria-modal="true" aria-label={open.title} data-ready={scrollFrame >= 9}>
         {(() => {

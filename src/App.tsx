@@ -7,7 +7,7 @@ import { JourneyApp } from './Journey';
 import type { FsDoc } from './filesystem';
 
 type Win = { id: AppId; x: number; y: number; w: number; h: number; z: number; minimized: boolean; maximized: boolean };
-const iconTint: Partial<Record<AppId, string>> = { terminal: 'terminal', projects: 'folder', about: 'profile', skills: 'violet', experience: 'blue', contact: 'mail', resume: 'pdf', settings: 'settings', pc: 'computer' };
+const iconTint: Partial<Record<AppId, string>> = { terminal: 'terminal', projects: 'folder', about: 'profile', skills: 'violet', experience: 'blue', contact: 'mail', resume: 'pdf', settings: 'settings', pc: 'computer', journey: 'sprite-icon' };
 type SearchResult = { label: string; detail: string; id: AppId; project?: Project };
 
 export type Settings = { theme: string; wallpaper: string; solid: string; image: string; accent: string; font: string; textSize: number; caption: boolean; widgets: boolean };
@@ -233,7 +233,7 @@ function App() {
 }
 
 function AppIcon({ id, compact = false }: { id: AppId; compact?: boolean }) {
-  return <span className={`app-icon ${iconTint[id] || 'blue'} ${compact ? 'compact-icon' : ''}`} aria-hidden="true">{appInfo[id].icon}</span>;
+  return <span className={`app-icon ${iconTint[id] || 'blue'} ${compact ? 'compact-icon' : ''}`} aria-hidden="true">{id === 'journey' ? <img src="/sprite/icon.png" alt="" draggable={false} /> : appInfo[id].icon}</span>;
 }
 
 function WindowFrame({ win, active, focus, close, minimize, maximize, update, pinned, togglePin, children }: { pinned: boolean; togglePin: () => void; win: Win; active: boolean; focus: () => void; close: () => void; minimize: () => void; maximize: () => void; update: (transform: (item: Win) => Win) => void; children: React.ReactNode }) {
