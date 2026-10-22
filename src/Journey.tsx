@@ -84,7 +84,12 @@ function StoryBody({ id }: { id: string }): ReactNode {
       </ul>;
     }
     case 'goals':
-      return <p className="journey-muted">Goals haven't been added to this portfolio yet. They can be added in <code>src/Journey.tsx</code> when you're ready.</p>;
+      return <>
+        <p>My goal is to grow from AI engineer into a principal engineer and AI architect, leading the design of reliable, production-grade AI platforms that organizations can genuinely depend on. I want to be the person trusted to take AI from an exciting prototype to a system that is measurable, observable and safe to run every day.</p>
+        <p>In the near term, I'm deepening my craft in LLM applications, RAG pipelines and agentic workflows, and taking ownership of AI features from the first idea through to production. Over the next few years, I want to move into architecture and leadership: shaping agent frameworks, evaluation and safety practices, and mentoring engineers so teams build AI responsibly and well.</p>
+        <p>My background in full-stack development and application reliability shapes how I work. I want to bring that engineering discipline to AI, so that quality, monitoring and clear failure handling are part of the design from the start.</p>
+        <p>Long term, I want to build my own AI products, and to help set the standard for trustworthy AI engineering by sharing what I learn through the systems I ship.</p>
+      </>;
     case 'contact':
       return <ul className="journey-list">
         <li><strong>Email</strong><span><a href={`mailto:${profile.email}`}>{profile.email}</a></span></li>
