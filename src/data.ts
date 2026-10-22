@@ -162,7 +162,7 @@ export const education = [
   { degree: 'High Secondary Education', institution: 'Army Public School Barrackpore', result: 'Score: 81%' },
 ];
 
-export type AppId = 'terminal' | 'about' | 'projects' | 'skills' | 'experience' | 'education' | 'resume' | 'contact' | 'settings' | 'recycle' | 'pc' | 'viewer';
+export type AppId = 'terminal' | 'about' | 'projects' | 'skills' | 'experience' | 'education' | 'resume' | 'contact' | 'settings' | 'recycle' | 'pc' | 'viewer' | 'journey';
 export const appInfo: Record<AppId, { title: string; icon: string; hint: string }> = {
   terminal: { title: 'Terminal', icon: '›_', hint: 'A command-line introduction' },
   about: { title: 'About Me', icon: '◉', hint: 'Profile and education' },
@@ -176,6 +176,7 @@ export const appInfo: Record<AppId, { title: string; icon: string; hint: string 
   recycle: { title: 'Recycle Bin', icon: '♲', hint: 'Nothing stored here' },
   pc: { title: 'This PC', icon: '▣', hint: 'Browse portfolio files and folders' },
   viewer: { title: 'Text Viewer', icon: '≡', hint: 'Read documents opened from This PC' },
+  journey: { title: 'My Journey', icon: '✦', hint: 'Meet the avatar in a pixel-art Kolkata park' },
 };
 
-export const desktopApps: AppId[] = ['pc', 'about', 'projects', 'experience', 'skills', 'resume', 'terminal', 'contact', 'settings', 'recycle'];
+export const desktopApps: AppId[] = ['pc', 'about', 'projects', 'experience', 'skills', 'resume', 'terminal', 'contact', 'journey', 'settings', 'recycle'];

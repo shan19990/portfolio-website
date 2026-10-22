@@ -3,6 +3,7 @@ import type { FormEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { appInfo, desktopApps, education, experience, profile, projects, skillGroups, skillUsage } from './data';
 import type { AppId, Project } from './data';
 import { FileExplorer, ViewerApp } from './FileExplorer';
+import { JourneyApp } from './Journey';
 import type { FsDoc } from './filesystem';
 
 type Win = { id: AppId; x: number; y: number; w: number; h: number; z: number; minimized: boolean; maximized: boolean };
@@ -277,6 +278,7 @@ function AppContent({ id, openApp, openProject, openDoc, viewerDoc, settings, se
     case 'recycle': return <div className="app-padding empty-recycle"><div className="large-emoji">♲</div><h2>Nothing to see here.</h2><p>This Recycle Bin is just for show. It never stores or deletes real files.</p></div>;
     case 'pc': return <FileExplorer openApp={openApp} openProject={openProject} openDoc={openDoc} />;
     case 'viewer': return <ViewerApp doc={viewerDoc} />;
+    case 'journey': return <JourneyApp openApp={openApp} />;
   }
 }
 
