@@ -270,6 +270,7 @@ a { color: inherit; }
 .journey-pointer:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 @media (max-width: 700px) and (orientation: portrait) {
   .mobile-app-screen > .journey.journey-rotated { position: fixed; z-index: 26; left: 0; top: 51px; flex: none; width: calc(100dvh - 113px); height: 100vw; transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
+  .journey-rotated .journey-board-content .journey-modal-body { touch-action: none; user-select: none; -webkit-user-select: none; }
 }
 @media (prefers-reduced-motion: reduce) { .journey-story { animation: none; } }
 .window-controls button[aria-pressed="false"] { opacity: .55; font-size: 12px; }

@@ -221,6 +221,26 @@ export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
     }, MISS_FRAME_MS);
   };
 
+  // Native touch panning is unreliable inside the rotated stage, so map the screen-space drag onto the body's scroll axis.
+  const bodyDrag = useRef<{ id: number; x: number } | null>(null);
+  const bodyTouch = rotated ? {
+    onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === 'mouse') return;
+      event.preventDefault();
+      bodyDrag.current = { id: event.pointerId, x: event.clientX };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = bodyDrag.current;
+      if (!drag || drag.id !== event.pointerId) return;
+      event.preventDefault();
+      event.currentTarget.scrollTop += event.clientX - drag.x;
+      drag.x = event.clientX;
+    },
+    onPointerUp: () => { bodyDrag.current = null; },
+    onPointerCancel: () => { bodyDrag.current = null; },
+  } : {};
+
   const onStagePointerDown = (event: ReactPointerEvent) => {
     if ((event.target as HTMLElement).closest('.journey-backdrop')) return;
     const hit = (event.target as HTMLElement).closest<HTMLElement>('[data-story]');
@@ -262,7 +282,7 @@ export function JourneyApp({ openApp }: { openApp: (id: AppId) => void }) {
         <img className="journey-board-img" src="/sprite/board.png" alt="" draggable={false} />
         <div className="journey-board-content">
           <button className="journey-close" onClick={() => setOpen(null)} aria-label="Close story">X</button>
-          <div className="journey-modal-body" tabIndex={0} role="region" aria-label={`${open.title} story`}><StoryBody id={open.id} /></div>
+          <div className="journey-modal-body" {...bodyTouch} tabIndex={0} role="region" aria-label={`${open.title} story`}><StoryBody id={open.id} /></div>
           {open.app && <footer><button onClick={() => { const id = open.app!; setOpen(null); openApp(id); }}>{open.appLabel}</button></footer>}
         </div>
       </div>
